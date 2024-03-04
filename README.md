@@ -6,7 +6,7 @@ golang backend module for miniprogram and minigame
 ```bash
 go get github.com/aronfan/plat.mini
 ```
-* go module (recommended)
+* git submodule (recommended)
 ```bash
 cd /path/to/proj
 mkdir sub
@@ -17,7 +17,7 @@ git add plat.mini
 git commit -m "add plat.mini"
 git push
 ```
-add this line into go.mod of your proj
-```
+add the following line to your go.mod file if you want to make modifications
+```bash
 replace github.com/aronfan/plat.mini => ./sub/plat.mini
 ```
