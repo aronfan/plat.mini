@@ -1,7 +1,6 @@
 package xssh
 
 import (
-	"net"
 	"os"
 	"os/user"
 	"path/filepath"
@@ -20,7 +19,7 @@ func SshClient(addr, user, pass string) (*ssh.Client, error) {
 		Timeout:         10 * time.Second,
 	}
 
-	return sshClientWithConfig(config, addr)
+	return ssh.Dial("tcp", addr, config)
 }
 
 func SshClientWithKeyFile(addr, user, keyfile, keypass string) (*ssh.Client, error) {
@@ -54,24 +53,7 @@ func SshClientWithKeyFile(addr, user, keyfile, keypass string) (*ssh.Client, err
 		Timeout:         10 * time.Second,
 	}
 
-	return sshClientWithConfig(config, addr)
-}
-
-func sshClientWithConfig(config *ssh.ClientConfig, addr string) (*ssh.Client, error) {
-	tcpConn, err := net.Dial("tcp", addr)
-	if nil != err {
-		return nil, err
-	}
-
-	sshConn, chans, reqs, err := ssh.NewClientConn(tcpConn, addr, config)
-	if nil != err {
-		tcpConn.Close()
-		return nil, err
-	}
-
-	client := ssh.NewClient(sshConn, chans, reqs)
-
-	return client, nil
+	return ssh.Dial("tcp", addr, config)
 }
 
 func expandTilde(path string) (string, error) {

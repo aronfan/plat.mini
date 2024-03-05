@@ -3,14 +3,19 @@ package xtest
 import (
 	"context"
 	"fmt"
+	"net"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/aronfan/plat.mini/xcm"
 	"github.com/aronfan/plat.mini/xdb"
 	"github.com/aronfan/plat.mini/xssh"
+	sqldrv "github.com/go-sql-driver/mysql"
 	"github.com/redis/go-redis/v9"
 	"golang.org/x/crypto/ssh"
+	"gorm.io/driver/mysql"
+	"gorm.io/gorm"
 )
 
 func TestRawRedis(t *testing.T) {
@@ -18,11 +23,11 @@ func TestRawRedis(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	if config, err := xcm.MapToStruct[testConfig](); err != nil {
+	if conf, err := xcm.MapToStruct[testConfig](); err != nil {
 		t.Error(err)
 		return
 	} else {
-		opt := xdb.NewRedisOptionsWithUrl(config.RedisConfig.Url)
+		opt := xdb.NewRedisOptionsWithUrl(conf.RedisConfig.Url)
 		rdb, err := xdb.RedisOverSsh(opt, nil)
 		if err != nil {
 			t.Errorf("%v", err)
@@ -41,23 +46,23 @@ func TestSshRedis(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	if config, err := xcm.MapToStruct[testConfig](); err != nil {
+	if conf, err := xcm.MapToStruct[testConfig](); err != nil {
 		t.Error(err)
 		return
 	} else {
-		var tunnel *ssh.Client
-		opt := xdb.NewRedisOptionsWithUrl(config.RedisConfig.Url)
-		if config.RedisConfig.Ssh.Enable {
-			tunnel, err = xssh.SshClientWithKeyFile(config.RedisConfig.Ssh.Addr,
-				config.RedisConfig.Ssh.User,
-				config.RedisConfig.Ssh.Keyfile,
-				config.RedisConfig.Ssh.Keypass)
+		var cli *ssh.Client
+		opt := xdb.NewRedisOptionsWithUrl(conf.RedisConfig.Url)
+		if conf.RedisConfig.Ssh.Enable {
+			cli, err = xssh.SshClientWithKeyFile(conf.RedisConfig.Ssh.Addr,
+				conf.RedisConfig.Ssh.User,
+				conf.RedisConfig.Ssh.Keyfile,
+				conf.RedisConfig.Ssh.Keypass)
 			if err != nil {
 				t.Errorf("%v", err)
 				return
 			}
 		}
-		rdb, err := xdb.RedisOverSsh(opt, tunnel)
+		rdb, err := xdb.RedisOverSsh(opt, cli)
 		if err != nil {
 			t.Errorf("%v", err)
 			return
@@ -205,4 +210,53 @@ func runRedisPubsub(rdb *redis.Client) {
 			break
 		}
 	*/
+}
+
+func TestSshMysql(t *testing.T) {
+	if err := xcm.LoadConfigFile("config.yaml"); err != nil {
+		t.Error(err)
+		return
+	}
+	if conf, err := xcm.MapToStruct[testConfig](); err != nil {
+		t.Error(err)
+		return
+	} else {
+		dsn := conf.MysqlConfig.Dsn
+		if conf.MysqlConfig.Ssh.Enable {
+			cli, err := xssh.SshClientWithKeyFile(conf.MysqlConfig.Ssh.Addr,
+				conf.MysqlConfig.Ssh.User,
+				conf.MysqlConfig.Ssh.Keyfile,
+				conf.MysqlConfig.Ssh.Keypass)
+			if err != nil {
+				t.Errorf("%v", err)
+				return
+			}
+			sqldrv.RegisterDialContext("mysql+ssh", func(ctx context.Context, addr string) (net.Conn, error) {
+				return cli.Dial("tcp", addr)
+			})
+			// replace "tcp" to "mysql+ssh"
+			dsn = strings.Replace(conf.MysqlConfig.Dsn, "tcp", "mysql+ssh", 1)
+		}
+		t.Log(dsn)
+		db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
+		if err != nil {
+			t.Errorf("%v", err)
+			return
+		}
+
+		rows, err := db.Raw("SHOW DATABASES").Rows()
+		if err != nil {
+			t.Errorf("%v", err)
+			return
+		}
+
+		var databaseName string
+		for rows.Next() {
+			if err := rows.Scan(&databaseName); err != nil {
+				t.Errorf("%v", err)
+				return
+			}
+			t.Log("database:", databaseName)
+		}
+	}
 }

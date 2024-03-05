@@ -20,10 +20,10 @@ func NewRedisOptionsWithUrl(url string) *redis.Options {
 	return opt
 }
 
-func RedisOverSsh(opt *redis.Options, tunnel *ssh.Client) (*redis.Client, error) {
-	if tunnel != nil {
-		opt.Dialer = func(ctx context.Context, network, raddr string) (conn net.Conn, e error) {
-			return tunnel.Dial(network, raddr)
+func RedisOverSsh(opt *redis.Options, cli *ssh.Client) (*redis.Client, error) {
+	if cli != nil {
+		opt.Dialer = func(ctx context.Context, network, addr string) (conn net.Conn, e error) {
+			return cli.Dial(network, addr)
 		}
 		opt.ReadTimeout = -2
 		opt.WriteTimeout = -2
