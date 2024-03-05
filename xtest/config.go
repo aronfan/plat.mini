@@ -1,6 +1,6 @@
 package xtest
 
-type SshConfig struct {
+type sshConfig struct {
 	Enable  bool   `viper:"enable"`
 	Addr    string `viper:"addr"`
 	User    string `viper:"user"`
@@ -19,10 +19,10 @@ type testConfig struct {
 	} `mapstructure:"http"`
 	MysqlConfig struct {
 		Dsn string    `viper:"dsn"`
-		Ssh SshConfig `mapstructure:"ssh"`
+		Ssh sshConfig `mapstructure:"ssh"`
 	} `mapstructure:"mysql"`
 	RedisConfig struct {
 		Url string    `viper:"url"`
-		Ssh SshConfig `mapstructure:"ssh"`
+		Ssh sshConfig `mapstructure:"ssh"`
 	} `mapstructure:"redis"`
 }

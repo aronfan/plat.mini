@@ -3,15 +3,12 @@ package xtest
 import (
 	"context"
 	"fmt"
-	"net"
-	"strings"
 	"testing"
 	"time"
 
 	"github.com/aronfan/plat.mini/xcm"
 	"github.com/aronfan/plat.mini/xdb"
 	"github.com/aronfan/plat.mini/xssh"
-	sqldrv "github.com/go-sql-driver/mysql"
 	"github.com/redis/go-redis/v9"
 	"golang.org/x/crypto/ssh"
 	"gorm.io/driver/mysql"
@@ -222,6 +219,7 @@ func TestSshMysql(t *testing.T) {
 		return
 	} else {
 		dsn := conf.MysqlConfig.Dsn
+
 		if conf.MysqlConfig.Ssh.Enable {
 			cli, err := xssh.SshClientWithKeyFile(conf.MysqlConfig.Ssh.Addr,
 				conf.MysqlConfig.Ssh.User,
@@ -231,13 +229,9 @@ func TestSshMysql(t *testing.T) {
 				t.Errorf("%v", err)
 				return
 			}
-			sqldrv.RegisterDialContext("mysql+ssh", func(ctx context.Context, addr string) (net.Conn, error) {
-				return cli.Dial("tcp", addr)
-			})
-			// replace "tcp" to "mysql+ssh"
-			dsn = strings.Replace(conf.MysqlConfig.Dsn, "tcp", "mysql+ssh", 1)
+			dsn = xdb.MysqlOverSsh(dsn, cli)
 		}
-		t.Log(dsn)
+
 		db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
 		if err != nil {
 			t.Errorf("%v", err)

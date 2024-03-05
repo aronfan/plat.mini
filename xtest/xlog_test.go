@@ -11,5 +11,5 @@ import (
 func TestInitLog(t *testing.T) {
 	_ = xlog.InitLog()
 	xlog.Debug("hello, world")
-	xlog.Error("world", zap.Error(fmt.Errorf("sss")))
+	xlog.Error("world", zap.Error(fmt.Errorf("out of memory")))
 }
