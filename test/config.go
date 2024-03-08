@@ -1,4 +1,4 @@
-package xtest
+package test
 
 type sshConfig struct {
 	Enable  bool   `viper:"enable"`
