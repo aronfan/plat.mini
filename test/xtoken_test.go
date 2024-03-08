@@ -2,6 +2,7 @@ package test
 
 import (
 	"fmt"
+	"reflect"
 	"testing"
 	"time"
 
@@ -12,12 +13,13 @@ import (
 func TestJWT(t *testing.T) {
 	key := "hello"
 
+	expirationTime := time.Now().Add(30 * time.Second)
 	j := xtoken.NewJWT([]byte(key), jwt.SigningMethodHS256)
 	token, err := j.Token(map[string]any{
-		"id":  1,
+		"id":  int64(1),
 		"iss": "server",
 		"sub": "aron",
-		"exp": time.Second * 30,
+		"exp": expirationTime.Unix(),
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -30,4 +32,22 @@ func TestJWT(t *testing.T) {
 		t.Fatal(err)
 	}
 	fmt.Println(data)
+
+	id, ok := data["id"]
+	if ok {
+		dumpType(id)
+	}
+
+	exp, ok := data["exp"]
+	if ok {
+		dumpType(exp)
+	}
+}
+
+func dumpType(t any) {
+	typeOf := reflect.TypeOf(t)
+	fmt.Println("Type:", typeOf)
+
+	valueOf := reflect.ValueOf(t)
+	fmt.Println("Value:", valueOf)
 }
