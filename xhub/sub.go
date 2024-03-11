@@ -14,7 +14,7 @@ func NewMessageSub(key string, cb func(any) error) *MessageSub {
 	return &MessageSub{
 		key:    key,
 		cb:     cb,
-		ch:     make(chan any),
+		ch:     make(chan any, 10),
 		initWG: sync.WaitGroup{},
 		finiWG: sync.WaitGroup{},
 	}
