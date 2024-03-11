@@ -7,7 +7,7 @@ http:
     debug: true
 
 mysql:
-    dsn: root:ViqnKH8Apga3cWck@tcp(10.23.239.142:3306)/yyc_dev?charset=utf8mb4&parseTime=True&loc=Local
+    dsn: root:ViqnKH8Apga3cWck@tcp(10.23.239.142:3306)/yyc_1?charset=utf8mb4&parseTime=True&loc=Local
     ssh:
         enable: true
         addr: 113.31.114.7:22
