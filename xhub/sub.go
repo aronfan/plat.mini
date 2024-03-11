@@ -1,20 +1,27 @@
 package xhub
 
-import "sync"
+import (
+	"sync"
+	"time"
+)
 
 type MessageSub struct {
 	key    string
-	cb     func(any, bool) error
+	to     time.Duration
 	ch     chan any
+	event  func(any, bool) error
+	timer  func() error
 	initWG sync.WaitGroup
 	finiWG sync.WaitGroup
 }
 
-func NewMessageSub(key string, cb func(any, bool) error) *MessageSub {
+func NewMessageSub(key string, event func(any, bool) error, timer func() error) *MessageSub {
 	return &MessageSub{
 		key:    key,
-		cb:     cb,
+		to:     60 * time.Second,
 		ch:     make(chan any, 10),
+		event:  event,
+		timer:  timer,
 		initWG: sync.WaitGroup{},
 		finiWG: sync.WaitGroup{},
 	}
@@ -29,6 +36,7 @@ func (sub *MessageSub) Start() {
 			sub.finiWG.Done()
 		}()
 
+		t := time.NewTimer(sub.to)
 		sub.initWG.Done()
 
 	OuterLoop:
@@ -36,13 +44,19 @@ func (sub *MessageSub) Start() {
 			select {
 			case msg, ok := <-sub.ch:
 				if !ok {
-					sub.cb(nil, true)
+					sub.event(nil, true)
 					break OuterLoop
 				}
-				err := sub.cb(msg, false)
+				err := sub.event(msg, false)
 				if err != nil {
 					break OuterLoop
 				}
+			case <-t.C:
+				err := sub.timer()
+				if err != nil {
+					break OuterLoop
+				}
+				t.Reset(sub.to)
 			}
 		}
 	}()

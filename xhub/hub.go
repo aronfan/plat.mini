@@ -103,13 +103,15 @@ func (hub *MessageHub) Stop(key string) {
 	}
 }
 
-func (hub *MessageHub) Nums() int {
-	hub.lock.Lock()
-	defer hub.lock.Unlock()
+func (hub *MessageHub) Nums() (int, int) {
+	hub.lock.RLock()
+	defer hub.lock.RUnlock()
 
-	n := 0
+	keyNums := 0
+	subNums := 0
 	for _, v := range hub.subs {
-		n += len(v)
+		keyNums += 1
+		subNums += len(v)
 	}
-	return n
+	return keyNums, subNums
 }

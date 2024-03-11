@@ -16,10 +16,14 @@ func TestXHub(t *testing.T) {
 	sub1 := xhub.NewMessageSub(key, func(any, bool) error {
 		i++
 		return nil
+	}, func() error {
+		return nil
 	})
 	sub1.Start()
 	sub2 := xhub.NewMessageSub(key, func(any, bool) error {
 		i += 2
+		return nil
+	}, func() error {
 		return nil
 	})
 	sub2.Start()
@@ -43,5 +47,11 @@ func TestXHub(t *testing.T) {
 
 	hub.Del(key, sub1)
 	hub.Del(key, sub2)
-	t.Log("hub nums=", hub.Nums())
+
+	kn, sn := hub.Nums()
+	if kn != 0 || sn != 0 {
+		t.Fatalf("keynums=%d, subnums=%d", kn, sn)
+	}
+
+	t.Log("keynums=", kn, "subnums=", sn)
 }
