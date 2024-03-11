@@ -4,13 +4,13 @@ import "sync"
 
 type MessageSub struct {
 	key    string
-	cb     func(msg any) error
+	cb     func(any, bool) error
 	ch     chan any
 	initWG sync.WaitGroup
 	finiWG sync.WaitGroup
 }
 
-func NewMessageSub(key string, cb func(any) error) *MessageSub {
+func NewMessageSub(key string, cb func(any, bool) error) *MessageSub {
 	return &MessageSub{
 		key:    key,
 		cb:     cb,
@@ -36,9 +36,10 @@ func (sub *MessageSub) Start() {
 			select {
 			case msg, ok := <-sub.ch:
 				if !ok {
+					sub.cb(nil, true)
 					break OuterLoop
 				}
-				err := sub.cb(msg)
+				err := sub.cb(msg, false)
 				if err != nil {
 					break OuterLoop
 				}
