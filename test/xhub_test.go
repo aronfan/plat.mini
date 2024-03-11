@@ -13,12 +13,12 @@ func TestXHub(t *testing.T) {
 	i := 0
 
 	key := "xyz"
-	sub1 := xhub.NewMessageSub(key, func(any) error {
+	sub1 := xhub.NewMessageSub(key, func(any, bool) error {
 		i++
 		return nil
 	})
 	sub1.Start()
-	sub2 := xhub.NewMessageSub(key, func(any) error {
+	sub2 := xhub.NewMessageSub(key, func(any, bool) error {
 		i += 2
 		return nil
 	})
