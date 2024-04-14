@@ -10,7 +10,7 @@ import (
 )
 
 func Test_AgentStart(t *testing.T) {
-	agent := xactor.NewAgent(func(v *xactor.Call) { v.Response(v.Req) }, nil)
+	agent := xactor.NewAgent(func(v *xactor.Call) { v.Response(v.Req) })
 
 	a := actor.New(agent)
 	a.Start()
@@ -40,8 +40,8 @@ func Test_AgentStop(t *testing.T) {
 
 	fnCall := func(v *xactor.Call) { v.Response(v.Req) }
 	fnDone := func() { i += 1 }
-	ag1 := xactor.NewAgent(fnCall, fnDone)
-	ag2 := xactor.NewAgent(fnCall, fnDone)
+	ag1 := xactor.NewAgentWithDone(fnCall, fnDone)
+	ag2 := xactor.NewAgentWithDone(fnCall, fnDone)
 
 	a1 := actor.New(ag1)
 	a2 := actor.New(ag2)

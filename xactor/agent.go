@@ -52,7 +52,12 @@ func (agent *Agent) Call(req any) (any, error) {
 	return call.WaitCall()
 }
 
-func NewAgent(fnCall func(*Call), fnDone func()) *Agent {
+func NewAgent(fnCall func(*Call)) *Agent {
+	mbx := actor.NewMailbox[any](actor.OptAsChan())
+	return &Agent{inMbx: mbx, outMbx: mbx, fnCall: fnCall}
+}
+
+func NewAgentWithDone(fnCall func(*Call), fnDone func()) *Agent {
 	mbx := actor.NewMailbox[any](actor.OptAsChan())
 	return &Agent{inMbx: mbx, outMbx: mbx, fnCall: fnCall, fnDone: fnDone}
 }
