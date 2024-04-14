@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"testing"
-	"time"
 
 	"github.com/aronfan/plat.mini/xcm"
 	"github.com/aronfan/plat.mini/xdb"
@@ -182,6 +181,7 @@ func runRedisTx(rdb *redis.Client) {
 	}
 }
 
+/*
 func runRedisPubsub(rdb *redis.Client) {
 	ctx := context.Background()
 	channel := "mychannel"
@@ -198,18 +198,8 @@ func runRedisPubsub(rdb *redis.Client) {
 		fmt.Println(msg.Channel, msg.Payload)
 		break
 	}
-	/*
-		for {
-			msg, err := pubsub.ReceiveMessage(ctx)
-			if err != nil {
-				panic(err)
-			}
-
-			fmt.Println(msg.Channel, msg.Payload)
-			break
-		}
-	*/
 }
+*/
 
 func TestSshMysql(t *testing.T) {
 	if err := xcm.LoadConfigFile("config.yaml"); err != nil {

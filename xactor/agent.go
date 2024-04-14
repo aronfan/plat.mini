@@ -1,8 +1,6 @@
 package xactor
 
 import (
-	"fmt"
-
 	"github.com/vladopajic/go-actor/actor"
 )
 
@@ -10,21 +8,22 @@ type Agent struct {
 	inMbx  actor.MailboxReceiver[any]
 	outMbx actor.MailboxSender[any]
 	fnCall func(*Call)
+	fnDone func()
 }
 
 func (agent *Agent) DoWork(c actor.Context) actor.WorkerStatus {
 	select {
 	case <-c.Done():
+		if agent.fnDone != nil {
+			agent.fnDone()
+		}
 		return actor.WorkerEnd
 	case msg, ok := <-agent.inMbx.ReceiveC():
 		if ok {
 			switch t := msg.(type) {
 			case int:
-				fmt.Println("int:", t)
 			case string:
-				fmt.Println("string:", t)
 			case Responser:
-				fmt.Println("Responser:", t)
 				if v, ok := t.(*Call); ok {
 					if agent.fnCall != nil {
 						agent.fnCall(v)
@@ -33,7 +32,6 @@ func (agent *Agent) DoWork(c actor.Context) actor.WorkerStatus {
 					}
 				}
 			default:
-				fmt.Printf("unknown type: %T\n", t)
 			}
 		}
 		return actor.WorkerContinue
@@ -54,7 +52,7 @@ func (agent *Agent) Call(req any) (any, error) {
 	return call.WaitCall()
 }
 
-func NewAgent(fn func(*Call)) *Agent {
+func NewAgent(fnCall func(*Call), fnDone func()) *Agent {
 	mbx := actor.NewMailbox[any](actor.OptAsChan())
-	return &Agent{inMbx: mbx, outMbx: mbx, fnCall: fn}
+	return &Agent{inMbx: mbx, outMbx: mbx, fnCall: fnCall, fnDone: fnDone}
 }
