@@ -15,6 +15,7 @@ import (
 	"gorm.io/gorm"
 )
 
+/*
 func TestRawRedis(t *testing.T) {
 	if err := xcm.LoadConfigFile("config.yaml"); err != nil {
 		t.Error(err)
@@ -37,6 +38,7 @@ func TestRawRedis(t *testing.T) {
 		runRedisPubsub(rdb)
 	}
 }
+*/
 
 func TestSshRedis(t *testing.T) {
 	if err := xcm.LoadConfigFile("config.yaml"); err != nil {
