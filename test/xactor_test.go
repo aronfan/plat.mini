@@ -3,6 +3,7 @@ package test
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/aronfan/plat.mini/xactor"
 )
@@ -18,9 +19,11 @@ func Test_AgentManager(t *testing.T) {
 		ag2 := xactor.NewAgentWithDone(fnCall, fnDone)
 		if am.Add(k1, ag1) {
 			ag1.Start()
+			fmt.Println("add:", am.Add(k1, ag1))
 		}
 		if am.Add(k2, ag2) {
 			ag2.Start()
+			fmt.Println("add:", am.Add(k2, ag2))
 		}
 	}
 
@@ -31,9 +34,16 @@ func Test_AgentManager(t *testing.T) {
 	fmt.Println("len=", len)
 
 	{
-		ag1 := am.Del(k1)
+		val := am.Val(k1)
+		fmt.Println(val.Call("hello, world"))
 
-		req := "hello, world"
+		expires := time.Now().Add(30 * time.Second).Unix()
+		ag1 := am.MarkDel(k1, expires)
+
+		fmt.Println("at delete:", am.AtDel(k1))
+		fmt.Println("add:", am.Add(k1, ag1))
+
+		req := "flush"
 		resp, _ := ag1.Call(req)
 		if req != resp.(string) {
 			t.Fatal("not equal")
@@ -41,13 +51,19 @@ func Test_AgentManager(t *testing.T) {
 
 		// now it's safe to stop
 		ag1.Stop()
+
+		// now it's safe to delete
+		am.Del(k1, ag1)
 	}
 
 	fmt.Println("len=", am.Len())
 
 	{
-		ag2 := am.Del(k2)
+		expires := time.Now().Add(30 * time.Second).Unix()
+		ag2 := am.MarkDel(k2, expires)
+		fmt.Println("at delete:", am.AtDel(k2))
 		ag2.Stop()
+		am.Del(k2, ag2)
 	}
 
 	fmt.Println("len=", am.Len())
