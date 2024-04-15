@@ -54,21 +54,23 @@ func (agent *Agent) Call(req any) (any, error) {
 }
 
 func (agent *Agent) Start() {
-	actor := actor.New(agent)
-	agent.actor = actor
-	actor.Start()
+	if agent.actor == nil {
+		actor := actor.New(agent)
+		agent.actor = actor
+		actor.Start()
+	}
 }
 
 func (agent *Agent) Stop() {
 	actor := agent.actor
 	if actor != nil {
 		actor.Stop()
+		agent.actor = nil
 	}
 }
 
 func NewAgent(fnCall func(*Call)) *Agent {
-	mbx := actor.NewMailbox[any](actor.OptAsChan())
-	return &Agent{inMbx: mbx, outMbx: mbx, fnCall: fnCall}
+	return NewAgentWithDone(fnCall, nil)
 }
 
 func NewAgentWithDone(fnCall func(*Call), fnDone func()) *Agent {
