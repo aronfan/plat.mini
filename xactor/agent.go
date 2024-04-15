@@ -9,6 +9,7 @@ type Agent struct {
 	outMbx actor.MailboxSender[any]
 	fnCall func(*Call)
 	fnDone func()
+	actor  actor.Actor
 }
 
 func (agent *Agent) DoWork(c actor.Context) actor.WorkerStatus {
@@ -50,6 +51,19 @@ func (agent *Agent) Call(req any) (any, error) {
 		agent.outMbx.Send(c, call)
 	})).Start()
 	return call.WaitCall()
+}
+
+func (agent *Agent) Start() {
+	actor := actor.New(agent)
+	agent.actor = actor
+	actor.Start()
+}
+
+func (agent *Agent) Stop() {
+	actor := agent.actor
+	if actor != nil {
+		actor.Stop()
+	}
 }
 
 func NewAgent(fnCall func(*Call)) *Agent {
