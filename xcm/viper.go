@@ -5,6 +5,10 @@ import (
 	"github.com/spf13/viper"
 )
 
+func NewContext() *viper.Viper {
+	return viper.New()
+}
+
 func LoadConfigFileWithContext(filename string, ctx *viper.Viper) error {
 	if ctx == nil {
 		ctx = viper.GetViper()
