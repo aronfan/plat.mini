@@ -5,13 +5,17 @@ import (
 	"github.com/spf13/viper"
 )
 
-func NewContext() *viper.Viper {
-	return viper.New()
+type Context struct {
+	*viper.Viper
 }
 
-func LoadConfigFileWithContext(filename string, ctx *viper.Viper) error {
+func NewContext() *Context {
+	return &Context{Viper: viper.New()}
+}
+
+func LoadConfigFileWithContext(filename string, ctx *Context) error {
 	if ctx == nil {
-		ctx = viper.GetViper()
+		ctx = &Context{Viper: viper.GetViper()}
 	}
 
 	ctx.SetConfigFile(filename)
@@ -25,9 +29,9 @@ func LoadConfigFile(filename string) error {
 	return LoadConfigFileWithContext(filename, nil)
 }
 
-func MapToStructWithContext[T any](ctx *viper.Viper) (*T, error) {
+func MapToStructWithContext[T any](ctx *Context) (*T, error) {
 	if ctx == nil {
-		ctx = viper.GetViper()
+		ctx = &Context{Viper: viper.GetViper()}
 	}
 
 	t := new(T)
@@ -41,9 +45,9 @@ func MapToStruct[T any]() (*T, error) {
 	return MapToStructWithContext[T](nil)
 }
 
-func BeginWatchConfigWithContext(cb func(), ctx *viper.Viper) {
+func BeginWatchConfigWithContext(cb func(), ctx *Context) {
 	if ctx == nil {
-		ctx = viper.GetViper()
+		ctx = &Context{Viper: viper.GetViper()}
 	}
 
 	merger := NewTimeoutBasedMerger[fsnotify.Event]()
