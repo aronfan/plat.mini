@@ -32,22 +32,22 @@ type AgentManager struct {
 	duration time.Duration
 }
 
-func (am *AgentManager) Add(k string, agent *Agent) bool {
+func (am *AgentManager) Add(k string, agent *Agent) (bool, bool) {
 	am.lock.Lock()
 	defer am.lock.Unlock()
 
 	if am.atDel(k) {
-		return false
+		return false, true
 	} else {
 		delete(am.delete, k)
 	}
 
 	if _, ok := am.agents[k]; ok {
-		return false
+		return false, false
 	}
 
 	am.agents[k] = agent
-	return true
+	return true, false
 }
 
 func (am *AgentManager) MarkDel(k string, expires int64) *Agent {
@@ -98,17 +98,17 @@ func (am *AgentManager) Del(k string, ag *Agent) bool {
 	return false
 }
 
-func (am *AgentManager) Val(k string) *Agent {
+func (am *AgentManager) Val(k string) (*Agent, bool) {
 	am.lock.RLock()
 	defer am.lock.RUnlock()
 
 	if am.atDel(k) {
-		return nil
+		return nil, true
 	} else {
 		if agent, ok := am.agents[k]; ok {
-			return agent
+			return agent, false
 		} else {
-			return nil
+			return nil, false
 		}
 	}
 }

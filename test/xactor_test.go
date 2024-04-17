@@ -17,13 +17,11 @@ func Test_AgentManager(t *testing.T) {
 		fnDone := func() { fmt.Println("Done.") }
 		ag1 := xactor.NewAgentWithDone(fnCall, fnDone)
 		ag2 := xactor.NewAgentWithDone(fnCall, fnDone)
-		if am.Add(k1, ag1) {
+		if ok, _ := am.Add(k1, ag1); ok {
 			ag1.Start()
-			fmt.Println("add:", am.Add(k1, ag1))
 		}
-		if am.Add(k2, ag2) {
+		if ok, _ := am.Add(k2, ag2); ok {
 			ag2.Start()
-			fmt.Println("add:", am.Add(k2, ag2))
 		}
 	}
 
@@ -34,14 +32,15 @@ func Test_AgentManager(t *testing.T) {
 	fmt.Println("len=", len)
 
 	{
-		val := am.Val(k1)
+		val, _ := am.Val(k1)
 		fmt.Println(val.Call("hello, world"))
 
 		expires := time.Now().Add(30 * time.Second).Unix()
 		ag1 := am.MarkDel(k1, expires)
 
-		fmt.Println("at delete:", am.AtDel(k1))
-		fmt.Println("add:", am.Add(k1, ag1))
+		ok, atdel := am.Add(k1, ag1)
+		fmt.Println("at delete:", atdel)
+		fmt.Println("add:", ok)
 
 		req := "flush"
 		resp, _ := ag1.Call(req)
@@ -80,13 +79,11 @@ func Test_AgentTimer(t *testing.T) {
 		fnDone := func() { fmt.Println("Done.") }
 		ag1 := xactor.NewAgentWithDone(fnCall, fnDone)
 		ag2 := xactor.NewAgentWithDone(fnCall, fnDone)
-		if am.Add(k1, ag1) {
+		if ok, _ := am.Add(k1, ag1); ok {
 			ag1.Start()
-			fmt.Println("add:", am.Add(k1, ag1))
 		}
-		if am.Add(k2, ag2) {
+		if ok, _ := am.Add(k2, ag2); ok {
 			ag2.Start()
-			fmt.Println("add:", am.Add(k2, ag2))
 		}
 	}
 
@@ -97,14 +94,15 @@ func Test_AgentTimer(t *testing.T) {
 	fmt.Println("len=", len)
 
 	{
-		val := am.Val(k1)
+		val, _ := am.Val(k1)
 		fmt.Println(val.Call("hello, world"))
 
 		expires := time.Now().Add(-30 * time.Second).Unix()
 		ag1 := am.MarkDel(k1, expires)
 
-		fmt.Println("at delete:", am.AtDel(k1))
-		fmt.Println("add:", am.Add(k1, ag1))
+		ok, atdel := am.Add(k1, ag1)
+		fmt.Println("at delete:", atdel)
+		fmt.Println("add:", ok)
 
 		req := "flush"
 		resp, _ := ag1.Call(req)
