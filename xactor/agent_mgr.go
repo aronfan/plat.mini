@@ -30,6 +30,12 @@ type AgentManager struct {
 
 	timer    *time.Timer
 	duration time.Duration
+	cleanup  chan any
+}
+
+type AgentManagerOption struct {
+	Duration time.Duration
+	Cleanup  chan any
 }
 
 func (am *AgentManager) Add(k string, agent *Agent) (bool, bool) {
@@ -123,10 +129,19 @@ func (am *AgentManager) Len() int {
 func (am *AgentManager) DoWork(c actor.Context) actor.WorkerStatus {
 	select {
 	case <-c.Done():
+		if am.timer != nil {
+			am.timer.Stop()
+			am.timer = nil
+		}
 		return actor.WorkerEnd
 	case msg, ok := <-am.inMbx.ReceiveC():
 		if ok {
 			fmt.Println(msg)
+		}
+		return actor.WorkerContinue
+	case key, ok := <-am.cleanup:
+		if ok {
+			go am.onIdle(key.(string))
 		}
 		return actor.WorkerContinue
 	case <-am.timer.C:
@@ -136,9 +151,12 @@ func (am *AgentManager) DoWork(c actor.Context) actor.WorkerStatus {
 	}
 }
 
-func (am *AgentManager) SetTimer(d time.Duration) {
-	am.duration = d
-	am.timer = time.NewTimer(am.duration)
+func (am *AgentManager) onIdle(key string) {
+	expires := time.Now().Add(30 * time.Second).Unix()
+	agent := am.MarkDel(key, expires)
+	agent.Call("flush")
+	agent.Stop()
+	am.Del(key, agent)
 }
 
 func (am *AgentManager) doCleanup() {
@@ -161,6 +179,10 @@ func (am *AgentManager) doCleanup() {
 	}
 }
 
+func (am *AgentManager) GetCleanup() chan any {
+	return am.cleanup
+}
+
 func (am *AgentManager) Start() {
 	if am.actor == nil {
 		actor := actor.New(am)
@@ -178,11 +200,22 @@ func (am *AgentManager) Stop() {
 }
 
 func NewAgentManager() *AgentManager {
+	opt := &AgentManagerOption{
+		Duration: 30 * time.Second,
+		Cleanup:  make(chan any, 10000),
+	}
+	return NewAgentManagerWithOption(opt)
+}
+
+func NewAgentManagerWithOption(opt *AgentManagerOption) *AgentManager {
 	return &AgentManager{
-		lock:   sync.RWMutex{},
-		agents: make(map[string]*Agent),
-		delete: make(map[string]*deleteCtx),
-		inMbx:  actor.NewMailbox[any](actor.OptAsChan()),
-		actor:  nil,
+		lock:     sync.RWMutex{},
+		agents:   make(map[string]*Agent),
+		delete:   make(map[string]*deleteCtx),
+		inMbx:    actor.NewMailbox[any](actor.OptAsChan()),
+		actor:    nil,
+		duration: opt.Duration,
+		timer:    time.NewTimer(opt.Duration),
+		cleanup:  opt.Cleanup,
 	}
 }

@@ -8,15 +8,28 @@ import (
 	"github.com/aronfan/plat.mini/xactor"
 )
 
-func Test_AgentManager(t *testing.T) {
+func Test_AgentManualCleanup(t *testing.T) {
 	k1 := "123456"
 	k2 := "654321"
-	am := xactor.NewAgentManager()
+
+	opt := &xactor.AgentManagerOption{
+		Duration: 1 * time.Second,
+		Cleanup:  make(chan any, 100),
+	}
+	am := xactor.NewAgentManagerWithOption(opt)
 	{
 		fnCall := func(v *xactor.Call) { v.Response(v.Req) }
 		fnDone := func() { fmt.Println("Done.") }
-		ag1 := xactor.NewAgentWithDone(fnCall, fnDone)
-		ag2 := xactor.NewAgentWithDone(fnCall, fnDone)
+		opt1 := &xactor.AgentOption{
+			Key:      k1,
+			CallFn:   fnCall,
+			DoneFn:   fnDone,
+			Duration: 1 * time.Second,
+			Cleanup:  am.GetCleanup(),
+		}
+		ag1 := xactor.NewAgentWithOption(opt1)
+		opt1.Key = k2
+		ag2 := xactor.NewAgentWithOption(opt1)
 		if ok, _ := am.Add(k1, ag1); ok {
 			ag1.Start()
 		}
@@ -68,17 +81,29 @@ func Test_AgentManager(t *testing.T) {
 	fmt.Println("len=", am.Len())
 }
 
-func Test_AgentTimer(t *testing.T) {
+func Test_AgentAutoCleanup(t *testing.T) {
 	k1 := "123456"
 	k2 := "654321"
-	am := xactor.NewAgentManager()
-	am.SetTimer(1 * time.Second)
+
+	opt := &xactor.AgentManagerOption{
+		Duration: 1 * time.Second,
+		Cleanup:  make(chan any, 100),
+	}
+	am := xactor.NewAgentManagerWithOption(opt)
 	am.Start()
 	{
 		fnCall := func(v *xactor.Call) { v.Response(v.Req) }
 		fnDone := func() { fmt.Println("Done.") }
-		ag1 := xactor.NewAgentWithDone(fnCall, fnDone)
-		ag2 := xactor.NewAgentWithDone(fnCall, fnDone)
+		opt1 := &xactor.AgentOption{
+			Key:      k1,
+			CallFn:   fnCall,
+			DoneFn:   fnDone,
+			Duration: 1 * time.Second,
+			Cleanup:  am.GetCleanup(),
+		}
+		ag1 := xactor.NewAgentWithOption(opt1)
+		opt1.Key = k2
+		ag2 := xactor.NewAgentWithOption(opt1)
 		if ok, _ := am.Add(k1, ag1); ok {
 			ag1.Start()
 		}
@@ -118,11 +143,10 @@ func Test_AgentTimer(t *testing.T) {
 	fmt.Println("len=", am.Len())
 
 	{
-		expires := time.Now().Add(-30 * time.Second).Unix()
-		ag2 := am.MarkDel(k2, expires)
-		fmt.Println("at delete:", am.AtDel(k2))
-		ag2.Stop()
-		time.Sleep(2 * time.Second)
+		// trigger manager to cleanup k2 agent
+		ag2, _ := am.Val(k2)
+		ag2.SetLast(time.Now().Add(-400 * time.Second))
+		time.Sleep(3 * time.Second)
 	}
 
 	fmt.Println("len=", am.Len())
