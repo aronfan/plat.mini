@@ -37,6 +37,10 @@ type AgentOption struct {
 func (agent *Agent) DoWork(c actor.Context) actor.WorkerStatus {
 	select {
 	case <-c.Done():
+		if agent.timer != nil {
+			agent.timer.Stop()
+			agent.timer = nil
+		}
 		if agent.fnDone != nil {
 			agent.fnDone()
 		}
@@ -106,10 +110,6 @@ func (agent *Agent) Start() {
 func (agent *Agent) Stop() {
 	actor := agent.actor
 	if actor != nil {
-		if agent.timer != nil {
-			agent.timer.Stop()
-			agent.timer = nil
-		}
 		actor.Stop()
 		agent.actor = nil
 	}
