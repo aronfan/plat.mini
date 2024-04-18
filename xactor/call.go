@@ -7,18 +7,21 @@ import (
 
 var (
 	ErrResponserIsFull  error = errors.New("responser is full")
-	ErrResponserClosed  error = errors.New("responser was closed")
+	ErrResponserClosed  error = errors.New("responser closed")
 	ErrResponserTimeout error = errors.New("responser timeout")
 )
 
 type Responser interface {
-	Response(any) error
+	Response(int, any) error
 }
 
 type Call struct {
-	Req    any
+	Req any
+	To  time.Duration
+
+	Code   int
+	Resp   any
 	RespCh chan any
-	To     time.Duration
 }
 
 func newCall(req any) *Call {
@@ -29,24 +32,27 @@ func newCall(req any) *Call {
 	}
 }
 
-func (call *Call) Response(resp any) error {
+func (call *Call) Response(code int, resp any) error {
+	call.Code = code
+	call.Resp = resp
+
 	select {
-	case call.RespCh <- resp:
+	case call.RespCh <- code:
 		return nil
 	default:
 		return ErrResponserIsFull
 	}
 }
 
-func (call *Call) WaitCall() (any, error) {
+func (call *Call) WaitCall() (int, any, error) {
 	select {
-	case v, ok := <-call.RespCh:
+	case _, ok := <-call.RespCh:
 		if ok {
-			return v, nil
+			return call.Code, call.Resp, nil
 		} else {
-			return nil, ErrResponserClosed
+			return 0, nil, ErrResponserClosed
 		}
 	case <-time.After(call.To):
-		return nil, ErrResponserTimeout
+		return 0, nil, ErrResponserTimeout
 	}
 }

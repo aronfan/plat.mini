@@ -18,7 +18,7 @@ func Test_AgentManualCleanup(t *testing.T) {
 	}
 	am := xactor.NewAgentManagerWithOption(opt)
 	{
-		fnCall := func(v *xactor.Call) { v.Response(v.Req) }
+		fnCall := func(v *xactor.Call) { v.Response(0, v.Req) }
 		fnDone := func() { fmt.Println("Done.") }
 		opt1 := &xactor.AgentOption{
 			Key:      k1,
@@ -56,7 +56,7 @@ func Test_AgentManualCleanup(t *testing.T) {
 		fmt.Println("add:", ok)
 
 		req := "flush"
-		resp, _ := ag1.Call(req)
+		_, resp, _ := ag1.Call(req)
 		if req != resp.(string) {
 			t.Fatal("not equal")
 		}
@@ -92,7 +92,7 @@ func Test_AgentAutoCleanup(t *testing.T) {
 	am := xactor.NewAgentManagerWithOption(opt)
 	am.Start()
 	{
-		fnCall := func(v *xactor.Call) { v.Response(v.Req) }
+		fnCall := func(v *xactor.Call) { v.Response(0, v.Req) }
 		fnDone := func() { fmt.Println("Done.") }
 		opt1 := &xactor.AgentOption{
 			Key:      k1,
@@ -130,7 +130,7 @@ func Test_AgentAutoCleanup(t *testing.T) {
 		fmt.Println("add:", ok)
 
 		req := "flush"
-		resp, _ := ag1.Call(req)
+		_, resp, _ := ag1.Call(req)
 		if req != resp.(string) {
 			t.Fatal("not equal")
 		}

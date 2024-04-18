@@ -56,7 +56,7 @@ func (agent *Agent) DoWork(c actor.Context) actor.WorkerStatus {
 					if agent.fnCall != nil {
 						agent.fnCall(v)
 					} else {
-						v.Response(nil)
+						v.Response(0, nil)
 					}
 				}
 			default:
@@ -85,7 +85,7 @@ func (agent *Agent) Post(req any) {
 	})).Start()
 }
 
-func (agent *Agent) Call(req any) (any, error) {
+func (agent *Agent) Call(req any) (int, any, error) {
 	call := newCall(req)
 	actor.Idle(actor.OptOnStart(func(c actor.Context) {
 		agent.outMbx.Send(c, call)
