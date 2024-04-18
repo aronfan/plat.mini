@@ -2,6 +2,8 @@ package test
 
 import (
 	"fmt"
+	"runtime/debug"
+	"strings"
 	"testing"
 	"time"
 
@@ -87,7 +89,6 @@ func Test_AgentForceStop(t *testing.T) {
 func Test_AgentManualCleanup(t *testing.T) {
 	k1 := "123456"
 	k2 := "654321"
-
 	opt := &xactor.AgentManagerOption{
 		Duration: 1 * time.Second,
 		Cleanup:  make(chan any, 100),
@@ -158,11 +159,8 @@ func Test_AgentManualCleanup(t *testing.T) {
 }
 
 func Test_AgentAutoCleanup(t *testing.T) {
-	//defer goleak.VerifyNone(t)
-
 	k1 := "123456"
 	k2 := "654321"
-
 	opt := &xactor.AgentManagerOption{
 		Duration: 1 * time.Second,
 		Cleanup:  make(chan any, 100),
@@ -230,6 +228,56 @@ func Test_AgentAutoCleanup(t *testing.T) {
 	fmt.Println("len=", am.Len())
 
 	am.Stop()
+}
+
+func Test_AgentCoreDump(t *testing.T) {
+	k1 := "123456"
+	opt := &xactor.AgentManagerOption{
+		Duration: 1 * time.Second,
+		Cleanup:  make(chan any, 100),
+	}
+	am := xactor.NewAgentManagerWithOption(opt)
+	am.Start()
+	defer am.Stop()
+	{
+		fnCall := func(v *xactor.Call) {
+			defer func() {
+				if err := recover(); err != nil {
+					stack := string(debug.Stack())
+					ss := strings.Split(stack, "\n")
+					for i := 0; i < len(ss); i++ {
+						str := strings.Replace(ss[i], "\t", "    ", -1)
+						fmt.Println(str)
+					}
+				}
+			}()
+
+			var ms map[string]int
+			ms["abc"] = 10 // cause coredump
+
+			v.Response(0, v.Req)
+		}
+		fnDone := func() { fmt.Println("Done.") }
+		opt1 := &xactor.AgentOption{
+			Key:      k1,
+			CallFn:   fnCall,
+			DoneFn:   fnDone,
+			Duration: 1 * time.Second,
+			Cleanup:  am.GetCleanup(),
+		}
+		ag1 := xactor.NewAgentWithOption(opt1)
+		if ok, _ := am.Add(k1, ag1); ok {
+			ag1.Start()
+		}
+	}
+
+	{
+		ag1, _ := am.Val(k1)
+		fmt.Println(ag1.Call("abc"))
+
+		ag1.SetLast(time.Now().Add(-400 * time.Second))
+		time.Sleep(10 * time.Second)
+	}
 }
 
 func TestMain(m *testing.M) {
