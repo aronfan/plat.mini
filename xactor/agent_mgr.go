@@ -154,9 +154,11 @@ func (am *AgentManager) DoWork(c actor.Context) actor.WorkerStatus {
 func (am *AgentManager) onIdle(key string) {
 	expires := time.Now().Add(30 * time.Second).Unix()
 	agent := am.MarkDel(key, expires)
-	agent.Call("flush")
-	agent.Stop()
-	am.Del(key, agent)
+	if agent != nil {
+		agent.Call("flush")
+		agent.Stop()
+		am.Del(key, agent)
+	}
 }
 
 func (am *AgentManager) doCleanup() {
@@ -187,6 +189,7 @@ func (am *AgentManager) Start() {
 	if am.actor == nil {
 		actor := actor.New(am)
 		am.actor = actor
+		am.timer = time.NewTimer(am.duration)
 		actor.Start()
 	}
 }
@@ -215,7 +218,7 @@ func NewAgentManagerWithOption(opt *AgentManagerOption) *AgentManager {
 		inMbx:    actor.NewMailbox[any](actor.OptAsChan()),
 		actor:    nil,
 		duration: opt.Duration,
-		timer:    time.NewTimer(opt.Duration),
+		timer:    nil,
 		cleanup:  opt.Cleanup,
 	}
 }

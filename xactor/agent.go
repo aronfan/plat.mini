@@ -9,6 +9,7 @@ import (
 type Agent struct {
 	key     string
 	last    time.Time
+	actor   actor.Actor
 	cleanup chan any
 
 	// message
@@ -16,7 +17,6 @@ type Agent struct {
 	outMbx actor.MailboxSender[any]
 	fnCall func(*Call)
 	fnDone func()
-	actor  actor.Actor
 
 	// timer
 	duration time.Duration
@@ -36,12 +36,12 @@ type AgentOption struct {
 func (agent *Agent) DoWork(c actor.Context) actor.WorkerStatus {
 	select {
 	case <-c.Done():
-		if agent.fnDone != nil {
-			agent.fnDone()
-		}
 		if agent.timer != nil {
 			agent.timer.Stop()
 			agent.timer = nil
+		}
+		if agent.fnDone != nil {
+			agent.fnDone()
 		}
 		return actor.WorkerEnd
 	case msg, ok := <-agent.inMbx.ReceiveC():
@@ -94,9 +94,10 @@ func (agent *Agent) SetLast(t time.Time) {
 
 func (agent *Agent) Start() {
 	if agent.actor == nil {
-		agent.last = time.Now()
 		actor := actor.New(agent)
 		agent.actor = actor
+		agent.timer = time.NewTimer(agent.duration)
+		agent.last = time.Now()
 		actor.Start()
 	}
 }
@@ -115,13 +116,13 @@ func NewAgentWithOption(opt *AgentOption) *Agent {
 		key:      opt.Key,
 		last:     time.Now(),
 		cleanup:  opt.Cleanup,
+		actor:    nil,
 		inMbx:    mbx,
 		outMbx:   mbx,
 		fnCall:   opt.CallFn,
 		fnDone:   opt.DoneFn,
-		actor:    nil,
 		duration: opt.Duration,
-		timer:    time.NewTimer(opt.Duration),
+		timer:    nil,
 		fnTimer:  opt.TimerFn,
 	}
 }
