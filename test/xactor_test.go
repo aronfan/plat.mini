@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/aronfan/plat.mini/xactor"
+	"go.uber.org/goleak"
 )
 
 func Test_AgentManualCleanup(t *testing.T) {
@@ -82,6 +83,8 @@ func Test_AgentManualCleanup(t *testing.T) {
 }
 
 func Test_AgentAutoCleanup(t *testing.T) {
+	//defer goleak.VerifyNone(t)
+
 	k1 := "123456"
 	k2 := "654321"
 
@@ -152,4 +155,8 @@ func Test_AgentAutoCleanup(t *testing.T) {
 	fmt.Println("len=", am.Len())
 
 	am.Stop()
+}
+
+func TestMain(m *testing.M) {
+	goleak.VerifyTestMain(m)
 }

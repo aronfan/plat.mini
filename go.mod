@@ -9,6 +9,7 @@ require (
 	github.com/redis/go-redis/v9 v9.5.1
 	github.com/spf13/viper v1.18.2
 	github.com/vladopajic/go-actor v0.9.0
+	go.uber.org/goleak v1.3.0
 	go.uber.org/zap v1.27.0
 	golang.org/x/crypto v0.20.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
