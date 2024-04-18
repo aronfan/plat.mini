@@ -129,10 +129,6 @@ func (am *AgentManager) Len() int {
 func (am *AgentManager) DoWork(c actor.Context) actor.WorkerStatus {
 	select {
 	case <-c.Done():
-		if am.timer != nil {
-			am.timer.Stop()
-			am.timer = nil
-		}
 		return actor.WorkerEnd
 	case msg, ok := <-am.inMbx.ReceiveC():
 		if ok {
@@ -197,6 +193,10 @@ func (am *AgentManager) Start() {
 func (am *AgentManager) Stop() {
 	actor := am.actor
 	if actor != nil {
+		if am.timer != nil {
+			am.timer.Stop()
+			am.timer = nil
+		}
 		actor.Stop()
 		am.actor = nil
 	}
