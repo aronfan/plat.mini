@@ -59,12 +59,14 @@ func TestSshRedis(t *testing.T) {
 				t.Errorf("%v", err)
 				return
 			}
+			defer cli.Close()
 		}
 		rdb, err := xdb.RedisOverSsh(opt, cli)
 		if err != nil {
 			t.Errorf("%v", err)
 			return
 		}
+		defer rdb.Close()
 
 		runRedisOp(rdb)
 		runRedisTx(rdb)
@@ -221,6 +223,7 @@ func TestSshMysql(t *testing.T) {
 				t.Errorf("%v", err)
 				return
 			}
+			defer cli.Close()
 			dsn = xdb.MysqlOverSsh(dsn, cli)
 		}
 
@@ -229,6 +232,8 @@ func TestSshMysql(t *testing.T) {
 			t.Errorf("%v", err)
 			return
 		}
+		sqlDB, _ := db.DB()
+		defer sqlDB.Close()
 
 		rows, err := db.Raw("SHOW DATABASES").Rows()
 		if err != nil {
