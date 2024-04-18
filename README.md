@@ -17,7 +17,7 @@ git add plat.mini
 git commit -m "add plat.mini"
 git push
 ```
-add the following line to your go.mod file if you want to make modifications
+add the following line to your go.mod if you want to make local modifications
 ```bash
 replace github.com/aronfan/plat.mini => ./sub/plat.mini
 ```
