@@ -79,6 +79,10 @@ func (agent *Agent) DoWork(c actor.Context) actor.WorkerStatus {
 	}
 }
 
+func (agent *Agent) GetKey() string {
+	return agent.key
+}
+
 func (agent *Agent) Post(req any) {
 	actor.Idle(actor.OptOnStart(func(c actor.Context) {
 		agent.outMbx.Send(c, req)

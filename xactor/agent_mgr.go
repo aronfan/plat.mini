@@ -202,6 +202,19 @@ func (am *AgentManager) Stop() {
 	}
 }
 
+func (am *AgentManager) StopAgents(cb func(agent *Agent) bool) {
+	am.lock.Lock()
+	defer am.lock.Unlock()
+
+	for key, agent := range am.agents {
+		ok := cb(agent)
+		if ok {
+			delete(am.agents, key)
+			delete(am.delete, key)
+		}
+	}
+}
+
 func NewAgentManager() *AgentManager {
 	opt := &AgentManagerOption{
 		Duration: 30 * time.Second,

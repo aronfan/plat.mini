@@ -9,6 +9,81 @@ import (
 	"go.uber.org/goleak"
 )
 
+func Test_AgentForceStop(t *testing.T) {
+	nums := 100
+	opt := &xactor.AgentManagerOption{
+		Duration: 1 * time.Second,
+		Cleanup:  make(chan any, nums),
+	}
+	am := xactor.NewAgentManagerWithOption(opt)
+	defer am.Stop()
+	{
+		fnCall := func(v *xactor.Call) { v.Response(0, v.Req) }
+		fnDone := func() { fmt.Println("Done.") }
+		for i := 1; i <= nums; i++ {
+			key := fmt.Sprintf("%d", i)
+			opt := &xactor.AgentOption{
+				Key:      key,
+				CallFn:   fnCall,
+				DoneFn:   fnDone,
+				Duration: 1 * time.Second,
+				Cleanup:  am.GetCleanup(),
+			}
+			agent := xactor.NewAgentWithOption(opt)
+			if ok, _ := am.Add(key, agent); ok {
+				agent.Start()
+			}
+		}
+	}
+
+	fmt.Println("Len=", am.Len())
+	{
+		succ := 0
+		fail := 0
+		for i := 1; i <= nums; i++ {
+			key := fmt.Sprintf("%d", i)
+			val, _ := am.Val(key)
+			input := fmt.Sprintf("hello, world #%d", i)
+			_, output, err := val.Call(input)
+			if err != nil {
+				fail += 1
+			} else {
+				if input != output.(string) {
+					fail += 1
+				} else {
+					succ += 1
+				}
+			}
+		}
+		fmt.Println("succ=", succ, "fail=", fail)
+	}
+
+	{
+		maxRetries := 3
+		for i := 1; i <= maxRetries; i++ {
+			fmt.Printf("i=%d Len=%d\n", i, am.Len())
+			am.StopAgents(func(agent *xactor.Agent) bool {
+				_, _, err := agent.Call("flush")
+				if err != nil {
+					fmt.Println("key:", agent.GetKey(), "failed to flush")
+					return false
+				}
+				agent.Stop()
+				return true
+			})
+			len := am.Len()
+			fmt.Printf("i=%d Len=%d\n", i, len)
+			if len == 0 {
+				break
+			} else {
+				time.Sleep(1 * time.Second)
+			}
+		}
+	}
+
+	fmt.Println("Len=", am.Len())
+}
+
 func Test_AgentManualCleanup(t *testing.T) {
 	k1 := "123456"
 	k2 := "654321"
