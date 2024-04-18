@@ -11,6 +11,7 @@ type Agent struct {
 	last    time.Time
 	actor   actor.Actor
 	cleanup chan any
+	report  bool
 
 	// message
 	inMbx  actor.MailboxReceiver[any]
@@ -67,8 +68,12 @@ func (agent *Agent) DoWork(c actor.Context) actor.WorkerStatus {
 			agent.fnTimer()
 		}
 		agent.timer.Reset(agent.duration)
-		if time.Since(agent.last) > 300*time.Second {
-			agent.cleanup <- agent.key
+		if !agent.report && (time.Since(agent.last) > 300*time.Second) {
+			select {
+			case agent.cleanup <- agent.key:
+				agent.report = true
+			default:
+			}
 		}
 		return actor.WorkerContinue
 	}
@@ -116,6 +121,7 @@ func NewAgentWithOption(opt *AgentOption) *Agent {
 		key:      opt.Key,
 		last:     time.Now(),
 		cleanup:  opt.Cleanup,
+		report:   false,
 		actor:    nil,
 		inMbx:    mbx,
 		outMbx:   mbx,
