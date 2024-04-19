@@ -30,12 +30,12 @@ type AgentManager struct {
 
 	timer    *time.Timer
 	duration time.Duration
-	cleanup  chan any
+	idlechan chan any
 }
 
 type AgentManagerOption struct {
 	Duration time.Duration
-	Cleanup  chan any
+	Idlechan chan any
 }
 
 func (am *AgentManager) Add(k string, agent *Agent) (bool, bool) {
@@ -139,7 +139,7 @@ func (am *AgentManager) DoWork(c actor.Context) actor.WorkerStatus {
 			fmt.Println(msg)
 		}
 		return actor.WorkerContinue
-	case key, ok := <-am.cleanup:
+	case key, ok := <-am.idlechan:
 		if ok {
 			go am.onIdle(key.(string))
 		}
@@ -181,8 +181,8 @@ func (am *AgentManager) doCleanup() {
 	}
 }
 
-func (am *AgentManager) GetCleanup() chan any {
-	return am.cleanup
+func (am *AgentManager) GetIdlechan() chan any {
+	return am.idlechan
 }
 
 func (am *AgentManager) Start() {
@@ -218,7 +218,7 @@ func (am *AgentManager) StopAgents(cb func(agent *Agent) bool) {
 func NewAgentManager() *AgentManager {
 	opt := &AgentManagerOption{
 		Duration: 30 * time.Second,
-		Cleanup:  make(chan any, 10000),
+		Idlechan: make(chan any, 10000),
 	}
 	return NewAgentManagerWithOption(opt)
 }
@@ -230,8 +230,8 @@ func NewAgentManagerWithOption(opt *AgentManagerOption) *AgentManager {
 		delete:   make(map[string]*deleteCtx),
 		inMbx:    actor.NewMailbox[any](actor.OptAsChan()),
 		actor:    nil,
-		duration: opt.Duration,
 		timer:    nil,
-		cleanup:  opt.Cleanup,
+		duration: opt.Duration,
+		idlechan: opt.Idlechan,
 	}
 }

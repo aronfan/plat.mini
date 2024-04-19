@@ -15,7 +15,7 @@ func Test_AgentForceStop(t *testing.T) {
 	nums := 100
 	opt := &xactor.AgentManagerOption{
 		Duration: 1 * time.Second,
-		Cleanup:  make(chan any, nums),
+		Idlechan: make(chan any, nums),
 	}
 	am := xactor.NewAgentManagerWithOption(opt)
 	defer am.Stop()
@@ -29,7 +29,7 @@ func Test_AgentForceStop(t *testing.T) {
 				CallFn:   fnCall,
 				DoneFn:   fnDone,
 				Duration: 1 * time.Second,
-				Cleanup:  am.GetCleanup(),
+				Idlechan: am.GetIdlechan(),
 			}
 			agent := xactor.NewAgentWithOption(opt)
 			if ok, _ := am.Add(key, agent); ok {
@@ -91,7 +91,7 @@ func Test_AgentManualCleanup(t *testing.T) {
 	k2 := "654321"
 	opt := &xactor.AgentManagerOption{
 		Duration: 1 * time.Second,
-		Cleanup:  make(chan any, 100),
+		Idlechan: make(chan any, 100),
 	}
 	am := xactor.NewAgentManagerWithOption(opt)
 	{
@@ -102,7 +102,7 @@ func Test_AgentManualCleanup(t *testing.T) {
 			CallFn:   fnCall,
 			DoneFn:   fnDone,
 			Duration: 1 * time.Second,
-			Cleanup:  am.GetCleanup(),
+			Idlechan: am.GetIdlechan(),
 		}
 		ag1 := xactor.NewAgentWithOption(opt1)
 		opt1.Key = k2
@@ -163,7 +163,7 @@ func Test_AgentAutoCleanup(t *testing.T) {
 	k2 := "654321"
 	opt := &xactor.AgentManagerOption{
 		Duration: 1 * time.Second,
-		Cleanup:  make(chan any, 100),
+		Idlechan: make(chan any, 100),
 	}
 	am := xactor.NewAgentManagerWithOption(opt)
 	am.Start()
@@ -175,7 +175,7 @@ func Test_AgentAutoCleanup(t *testing.T) {
 			CallFn:   fnCall,
 			DoneFn:   fnDone,
 			Duration: 1 * time.Second,
-			Cleanup:  am.GetCleanup(),
+			Idlechan: am.GetIdlechan(),
 		}
 		ag1 := xactor.NewAgentWithOption(opt1)
 		opt1.Key = k2
@@ -234,7 +234,7 @@ func Test_AgentCoreDump(t *testing.T) {
 	k1 := "123456"
 	opt := &xactor.AgentManagerOption{
 		Duration: 1 * time.Second,
-		Cleanup:  make(chan any, 100),
+		Idlechan: make(chan any, 100),
 	}
 	am := xactor.NewAgentManagerWithOption(opt)
 	am.Start()
@@ -263,7 +263,7 @@ func Test_AgentCoreDump(t *testing.T) {
 			CallFn:   fnCall,
 			DoneFn:   fnDone,
 			Duration: 1 * time.Second,
-			Cleanup:  am.GetCleanup(),
+			Idlechan: am.GetIdlechan(),
 		}
 		ag1 := xactor.NewAgentWithOption(opt1)
 		if ok, _ := am.Add(k1, ag1); ok {

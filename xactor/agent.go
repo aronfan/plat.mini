@@ -7,11 +7,10 @@ import (
 )
 
 type Agent struct {
-	key     string
-	last    time.Time
-	actor   actor.Actor
-	cleanup chan any
-	report  bool
+	key    string
+	last   time.Time
+	actor  actor.Actor
+	report bool
 
 	// message
 	inMbx  actor.MailboxReceiver[any]
@@ -20,9 +19,10 @@ type Agent struct {
 	fnDone func()
 
 	// timer
-	duration time.Duration
-	timer    *time.Timer
 	fnTimer  func()
+	timer    *time.Timer
+	duration time.Duration
+	idlechan chan any
 }
 
 type AgentOption struct {
@@ -31,7 +31,7 @@ type AgentOption struct {
 	DoneFn   func()
 	TimerFn  func()
 	Duration time.Duration
-	Cleanup  chan any
+	Idlechan chan any
 }
 
 func (agent *Agent) DoWork(c actor.Context) actor.WorkerStatus {
@@ -48,8 +48,6 @@ func (agent *Agent) DoWork(c actor.Context) actor.WorkerStatus {
 	case msg, ok := <-agent.inMbx.ReceiveC():
 		if ok {
 			switch t := msg.(type) {
-			case int:
-			case string:
 			case Responser:
 				agent.SetLast(time.Now())
 				if v, ok := t.(*Call); ok {
@@ -59,7 +57,6 @@ func (agent *Agent) DoWork(c actor.Context) actor.WorkerStatus {
 						v.Response(0, nil)
 					}
 				}
-			default:
 			}
 		}
 		return actor.WorkerContinue
@@ -70,7 +67,7 @@ func (agent *Agent) DoWork(c actor.Context) actor.WorkerStatus {
 		agent.timer.Reset(agent.duration)
 		if !agent.report && (time.Since(agent.last) > 300*time.Second) {
 			select {
-			case agent.cleanup <- agent.key:
+			case agent.idlechan <- agent.key:
 				agent.report = true
 			default:
 			}
@@ -120,19 +117,19 @@ func (agent *Agent) Stop() {
 }
 
 func NewAgentWithOption(opt *AgentOption) *Agent {
-	mbx := actor.NewMailbox[any](actor.OptAsChan())
+	mbx := actor.NewMailbox[any](actor.OptAsChan(), actor.OptCapacity(100))
 	return &Agent{
 		key:      opt.Key,
 		last:     time.Now(),
-		cleanup:  opt.Cleanup,
-		report:   false,
 		actor:    nil,
+		report:   false,
 		inMbx:    mbx,
 		outMbx:   mbx,
 		fnCall:   opt.CallFn,
 		fnDone:   opt.DoneFn,
-		duration: opt.Duration,
-		timer:    nil,
 		fnTimer:  opt.TimerFn,
+		timer:    nil,
+		duration: opt.Duration,
+		idlechan: opt.Idlechan,
 	}
 }
