@@ -1,11 +1,17 @@
 package xactor
 
 import (
+	"errors"
 	"fmt"
 	"sync"
 	"time"
 
 	"github.com/vladopajic/go-actor/actor"
+)
+
+var (
+	ErrAgentAtDel error = errors.New("agent at del")
+	ErrAgentExist error = errors.New("agent exists")
 )
 
 type deleteCtx struct {
@@ -38,22 +44,22 @@ type AgentManagerOption struct {
 	Idlechan chan any
 }
 
-func (am *AgentManager) Add(k string, agent *Agent) (bool, bool) {
+func (am *AgentManager) Add(k string, agent *Agent) error {
 	am.lock.Lock()
 	defer am.lock.Unlock()
 
 	if am.atDel(k) {
-		return false, true
+		return ErrAgentAtDel
 	} else {
 		delete(am.delete, k)
 	}
 
 	if _, ok := am.agents[k]; ok {
-		return false, false
+		return ErrAgentExist
 	}
 
 	am.agents[k] = agent
-	return true, false
+	return nil
 }
 
 func (am *AgentManager) MarkDel(k string, expires int64) *Agent {
@@ -104,17 +110,17 @@ func (am *AgentManager) Del(k string, ag *Agent) bool {
 	return false
 }
 
-func (am *AgentManager) Val(k string) (*Agent, bool) {
+func (am *AgentManager) Val(k string) (*Agent, error) {
 	am.lock.RLock()
 	defer am.lock.RUnlock()
 
 	if am.atDel(k) {
-		return nil, true
+		return nil, ErrAgentAtDel
 	} else {
 		if agent, ok := am.agents[k]; ok {
-			return agent, false
+			return agent, nil
 		} else {
-			return nil, false
+			return nil, nil
 		}
 	}
 }

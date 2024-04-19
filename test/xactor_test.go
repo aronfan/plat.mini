@@ -32,7 +32,7 @@ func Test_AgentForceStop(t *testing.T) {
 				Idlechan: am.GetIdlechan(),
 			}
 			agent := xactor.NewAgentWithOption(opt)
-			if ok, _ := am.Add(key, agent); ok {
+			if err := am.Add(key, agent); err == nil {
 				agent.Start()
 			}
 		}
@@ -107,10 +107,10 @@ func Test_AgentManualCleanup(t *testing.T) {
 		ag1 := xactor.NewAgentWithOption(opt1)
 		opt1.Key = k2
 		ag2 := xactor.NewAgentWithOption(opt1)
-		if ok, _ := am.Add(k1, ag1); ok {
+		if err := am.Add(k1, ag1); err == nil {
 			ag1.Start()
 		}
-		if ok, _ := am.Add(k2, ag2); ok {
+		if err := am.Add(k2, ag2); err == nil {
 			ag2.Start()
 		}
 	}
@@ -128,9 +128,9 @@ func Test_AgentManualCleanup(t *testing.T) {
 		expires := time.Now().Add(30 * time.Second).Unix()
 		ag1 := am.MarkDel(k1, expires)
 
-		ok, atdel := am.Add(k1, ag1)
-		fmt.Println("at delete:", atdel)
-		fmt.Println("add:", ok)
+		err := am.Add(k1, ag1)
+		fmt.Println("at delete:", err == xactor.ErrAgentAtDel)
+		fmt.Println("add:", err == nil)
 
 		req := "flush"
 		_, resp, _ := ag1.Call(req)
@@ -180,10 +180,10 @@ func Test_AgentAutoCleanup(t *testing.T) {
 		ag1 := xactor.NewAgentWithOption(opt1)
 		opt1.Key = k2
 		ag2 := xactor.NewAgentWithOption(opt1)
-		if ok, _ := am.Add(k1, ag1); ok {
+		if err := am.Add(k1, ag1); err == nil {
 			ag1.Start()
 		}
-		if ok, _ := am.Add(k2, ag2); ok {
+		if err := am.Add(k2, ag2); err == nil {
 			ag2.Start()
 		}
 	}
@@ -201,9 +201,9 @@ func Test_AgentAutoCleanup(t *testing.T) {
 		expires := time.Now().Add(-30 * time.Second).Unix()
 		ag1 := am.MarkDel(k1, expires)
 
-		ok, atdel := am.Add(k1, ag1)
-		fmt.Println("at delete:", atdel)
-		fmt.Println("add:", ok)
+		err := am.Add(k1, ag1)
+		fmt.Println("at delete:", err == xactor.ErrAgentAtDel)
+		fmt.Println("add:", err == nil)
 
 		req := "flush"
 		_, resp, _ := ag1.Call(req)
@@ -266,7 +266,7 @@ func Test_AgentCoreDump(t *testing.T) {
 			Idlechan: am.GetIdlechan(),
 		}
 		ag1 := xactor.NewAgentWithOption(opt1)
-		if ok, _ := am.Add(k1, ag1); ok {
+		if err := am.Add(k1, ag1); err == nil {
 			ag1.Start()
 		}
 	}
