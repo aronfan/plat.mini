@@ -6,7 +6,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/aronfan/plat.mini/xlog"
 	"github.com/vladopajic/go-actor/actor"
+	"go.uber.org/zap"
 )
 
 var (
@@ -221,6 +223,26 @@ func (am *AgentManager) StopAgents(cb func(agent *Agent) bool) {
 	}
 }
 
+func (am *AgentManager) NewAgent(key string, fnCall func(*Call)) error {
+	opt := &AgentOption{
+		Key:    key,
+		CallFn: fnCall,
+		DoneFn: func() {
+			xlog.Info("agent stopped", zap.String("key", key))
+		},
+		Duration: 1 * time.Second,
+		Idlechan: am.GetIdlechan(),
+	}
+	agent := NewAgentWithOption(opt)
+	if err := am.Add(key, agent); err == nil {
+		agent.Start()
+		xlog.Info("agent start", zap.String("key", key))
+		return nil
+	} else {
+		return err
+	}
+}
+
 func NewAgentManager() *AgentManager {
 	opt := &AgentManagerOption{
 		Duration: 30 * time.Second,
@@ -240,4 +262,31 @@ func NewAgentManagerWithOption(opt *AgentManagerOption) *AgentManager {
 		duration: opt.Duration,
 		idlechan: opt.Idlechan,
 	}
+}
+
+func StopAgentManager(am *AgentManager) {
+	// stop all agents
+	maxRetries := 3
+	for i := 1; i <= maxRetries; i++ {
+		xlog.Info("agent", zap.Int("Loop", i), zap.Int("Len", am.Len()))
+		am.StopAgents(func(agent *Agent) bool {
+			_, _, err := agent.Call("flush")
+			if err != nil {
+				xlog.Error("agent flush failed", zap.String("Key", agent.GetKey()))
+				return false
+			}
+			agent.Stop()
+			return true
+		})
+		len := am.Len()
+		xlog.Info("agent", zap.Int("Loop", i), zap.Int("Len", len))
+		if len == 0 {
+			break
+		} else {
+			time.Sleep(1 * time.Second)
+		}
+	}
+
+	// stop agent manager
+	am.Stop()
 }

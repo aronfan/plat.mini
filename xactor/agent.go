@@ -6,6 +6,10 @@ import (
 	"github.com/vladopajic/go-actor/actor"
 )
 
+var (
+	agentIdleTimeout = 300 * time.Second
+)
+
 type Agent struct {
 	key    string
 	last   time.Time
@@ -65,7 +69,7 @@ func (agent *Agent) DoWork(c actor.Context) actor.WorkerStatus {
 			agent.fnTimer()
 		}
 		agent.timer.Reset(agent.duration)
-		if !agent.report && (time.Since(agent.last) > 300*time.Second) {
+		if !agent.report && (time.Since(agent.last) >= agentIdleTimeout) {
 			select {
 			case agent.idlechan <- agent.key:
 				agent.report = true
