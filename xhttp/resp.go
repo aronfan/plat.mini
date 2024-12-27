@@ -21,3 +21,7 @@ func BadRequest(c *gin.Context) {
 func InternalError(c *gin.Context) {
 	FailResp(c, http.StatusInternalServerError, "Internal Server Error")
 }
+
+func InProgress(c *gin.Context) {
+	FailResp(c, http.StatusAccepted, "Data processing in progress")
+}
