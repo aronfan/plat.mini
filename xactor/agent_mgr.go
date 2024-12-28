@@ -2,7 +2,8 @@ package xactor
 
 import (
 	"errors"
-	"fmt"
+	"runtime/debug"
+	"strings"
 	"sync"
 	"time"
 
@@ -144,7 +145,7 @@ func (am *AgentManager) DoWork(c actor.Context) actor.WorkerStatus {
 		return actor.WorkerEnd
 	case msg, ok := <-am.inMbx.ReceiveC():
 		if ok {
-			fmt.Println(msg)
+			xlog.Debug("agent manager", zap.Any("msg", msg))
 		}
 		return actor.WorkerContinue
 	case key, ok := <-am.idlechan:
@@ -185,7 +186,7 @@ func (am *AgentManager) doCleanup() {
 	am.lock.Unlock()
 
 	for _, key := range keys {
-		fmt.Println("clean:", key)
+		xlog.Debug("cleanup:", zap.String("key", key))
 	}
 }
 
@@ -223,24 +224,50 @@ func (am *AgentManager) StopAgents(cb func(agent *Agent) bool) {
 	}
 }
 
-func (am *AgentManager) NewAgent(key string, fnCall func(*Call)) error {
-	opt := &AgentOption{
-		Key:    key,
-		CallFn: fnCall,
-		DoneFn: func() {
-			xlog.Info("agent stopped", zap.String("key", key))
-		},
-		Duration: 1 * time.Second,
-		Idlechan: am.GetIdlechan(),
-	}
-	agent := NewAgentWithOption(opt)
-	if err := am.Add(key, agent); err == nil {
-		agent.Start()
-		xlog.Info("agent start", zap.String("key", key))
-		return nil
-	} else {
+func (am *AgentManager) NewAgent(key string, cb func(*Call)) error {
+	val, err := am.Val(key)
+	if err == ErrAgentAtDel {
 		return err
 	}
+
+	if val == nil {
+		opt := &AgentOption{
+			Key: key,
+			CallFn: func(v *Call) {
+				defer func() {
+					if err := recover(); err != nil {
+						stack := string(debug.Stack())
+						ss := strings.Split(stack, "\n")
+						for i := 0; i < len(ss); i++ {
+							str := strings.Replace(ss[i], "\t", "    ", -1)
+							xlog.Error("agent", zap.String("!!!", str))
+						}
+					}
+				}()
+				cb(v)
+			},
+			DoneFn: func() {
+				xlog.Info("agent stopped", zap.String("key", key))
+			},
+			Duration: 1 * time.Second,
+			Idlechan: am.GetIdlechan(),
+		}
+
+		agent := NewAgentWithOption(opt)
+		err = am.Add(key, agent)
+		if err == ErrAgentAtDel {
+			return err
+		}
+
+		if err == nil {
+			agent.Start()
+			xlog.Info("agent start", zap.String("key", key))
+		} else {
+			// already exist, nothing to do
+		}
+	}
+
+	return nil
 }
 
 func NewAgentManager() *AgentManager {
