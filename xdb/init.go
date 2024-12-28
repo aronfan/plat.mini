@@ -13,7 +13,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func InitMysql(conf *xcm.Config) (*gorm.DB, *ssh.Client, error) {
+func InitMysql(conf *xcm.MysqlConfig) (*gorm.DB, *ssh.Client, error) {
 	var err error
 	var db *gorm.DB
 	var cli *ssh.Client
@@ -29,13 +29,13 @@ func InitMysql(conf *xcm.Config) (*gorm.DB, *ssh.Client, error) {
 		}
 	}()
 
-	dsn := conf.MysqlConfig.Dsn
+	dsn := conf.Dsn
 
-	if conf.MysqlConfig.Ssh.Enable {
-		cli, err = xssh.SshClientWithKeyFile(conf.MysqlConfig.Ssh.Addr,
-			conf.MysqlConfig.Ssh.User,
-			conf.MysqlConfig.Ssh.Keyfile,
-			conf.MysqlConfig.Ssh.Keypass)
+	if conf.Ssh.Enable {
+		cli, err = xssh.SshClientWithKeyFile(conf.Ssh.Addr,
+			conf.Ssh.User,
+			conf.Ssh.Keyfile,
+			conf.Ssh.Keypass)
 		if err != nil {
 			xlog.Error("SshClientWithKeyFile", zap.Error(err))
 			return nil, nil, err
@@ -58,7 +58,7 @@ func InitMysql(conf *xcm.Config) (*gorm.DB, *ssh.Client, error) {
 	return db, cli, nil
 }
 
-func InitRedis(conf *xcm.Config) (*redis.Client, *ssh.Client, error) {
+func InitRedis(conf *xcm.RedisConfig) (*redis.Client, *ssh.Client, error) {
 	var err error
 	var db *redis.Client
 	var cli *ssh.Client
@@ -73,18 +73,18 @@ func InitRedis(conf *xcm.Config) (*redis.Client, *ssh.Client, error) {
 		}
 	}()
 
-	if conf.RedisConfig.Ssh.Enable {
-		cli, err = xssh.SshClientWithKeyFile(conf.RedisConfig.Ssh.Addr,
-			conf.RedisConfig.Ssh.User,
-			conf.RedisConfig.Ssh.Keyfile,
-			conf.RedisConfig.Ssh.Keypass)
+	if conf.Ssh.Enable {
+		cli, err = xssh.SshClientWithKeyFile(conf.Ssh.Addr,
+			conf.Ssh.User,
+			conf.Ssh.Keyfile,
+			conf.Ssh.Keypass)
 		if err != nil {
 			xlog.Error("Redis", zap.Error(err))
 			return nil, nil, err
 		}
 	}
 
-	opt := NewRedisOptionsWithUrl(conf.RedisConfig.Url)
+	opt := NewRedisOptionsWithUrl(conf.Url)
 	db, err = RedisOverSsh(opt, cli)
 	if err != nil {
 		xlog.Error("Redis", zap.Error(err))
