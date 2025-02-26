@@ -9,6 +9,10 @@ import (
 	"gorm.io/gorm"
 )
 
+const (
+	NotDeleted = "deleted_at IS NULL"
+)
+
 func BuildFieldQuery[T any](ydb *gorm.DB, newObj *T, queryFields []string) (*gorm.DB, error) {
 	val := reflect.ValueOf(newObj).Elem()
 	typ := val.Type()
@@ -53,13 +57,7 @@ func Insert[T any](ydb *gorm.DB, newObj *T, queryFields []string) (*T, bool, err
 		// insert it
 		err = ydb.Create(newObj).Error
 		if err == nil {
-			// newbie
-			err = query.First(newObj).Error
-			if err != nil {
-				return nil, false, err
-			} else {
-				return newObj, false, nil
-			}
+			return newObj, false, nil
 		}
 		myerr, ok := err.(*mysql.MySQLError)
 		if !ok {
@@ -69,6 +67,10 @@ func Insert[T any](ydb *gorm.DB, newObj *T, queryFields []string) (*T, bool, err
 			return nil, false, err
 		} else {
 			// duplicated, already exist
+			query, err = BuildFieldQuery(ydb, newObj, queryFields)
+			if err != nil {
+				return nil, false, err
+			}
 			err = query.First(newObj).Error
 			if err != nil {
 				return nil, false, err
