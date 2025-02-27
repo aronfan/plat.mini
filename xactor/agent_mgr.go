@@ -13,8 +13,9 @@ import (
 )
 
 var (
-	ErrAgentAtDel error = errors.New("agent at del")
-	ErrAgentExist error = errors.New("agent exists")
+	ErrAgentAtDel    error = errors.New("agent at del")
+	ErrAgentExist    error = errors.New("agent exists")
+	ErrAgentNotExist error = errors.New("agent not exist")
 )
 
 type deleteCtx struct {
@@ -291,11 +292,24 @@ func NewAgentManagerWithOption(opt *AgentManagerOption) *AgentManager {
 	}
 }
 
+func DispatchAgent(am *AgentManager, key string, req any) (int, any, error) {
+	val, err := am.Val(key)
+	if err != nil {
+		return 500, nil, err
+	}
+
+	if val != nil {
+		return val.Call(req)
+	} else {
+		return 400, nil, ErrAgentNotExist
+	}
+}
+
 func StopAgentManager(am *AgentManager) {
 	// stop all agents
 	maxRetries := 3
 	for i := 1; i <= maxRetries; i++ {
-		xlog.Info("agent", zap.Int("Loop", i), zap.Int("Len", am.Len()))
+		xlog.Info("agent", zap.Int("Try", i), zap.Int("Actors", am.Len()))
 		am.StopAgents(func(agent *Agent) bool {
 			_, _, err := agent.Call("flush")
 			if err != nil {
@@ -306,7 +320,7 @@ func StopAgentManager(am *AgentManager) {
 			return true
 		})
 		len := am.Len()
-		xlog.Info("agent", zap.Int("Loop", i), zap.Int("Len", len))
+		xlog.Info("agent", zap.Int("Try", i), zap.Int("Actors", len))
 		if len == 0 {
 			break
 		} else {
